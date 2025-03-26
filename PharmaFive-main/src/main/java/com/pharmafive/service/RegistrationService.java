@@ -45,6 +45,7 @@ public class RegistrationService {
         registration.setOrganisationName(requestDTO.getOrganisationName());
         registration.setPassword(requestDTO.getPassword());
         registration.setStatus(Status.Pending);  // Default status
+        registration.setRole("User");
 
         // 3) Save to DB
         Registration savedRegistration = repository.save(registration);
@@ -112,39 +113,51 @@ public class RegistrationService {
         return responseDTO;
     }
 
-    public Page<Registration> searchRegistrations(String search, int page, int size) {
+    public Page<Registration> searchRegistrations(String search, Registration.Status status, int page, int size) {
         PageRequest pageRequest = PageRequest.of(page, size);
 
-        if (search == null || search.trim().isEmpty()) {
-            // No search term: return all records (paged)
+        boolean hasSearch = search != null && !search.trim().isEmpty();
+
+        if (!hasSearch && status == null) {
             return repository.findAll(pageRequest);
-        } else {
-            // With search term: filter by name/email/org
-            String keyword = search.trim();
-            return repository.searchByKeyword(keyword, pageRequest);
         }
+
+        if (status != null && !hasSearch) {
+            return repository.findByStatus(status, pageRequest);
+        }
+
+        if (status == null) {
+            return repository.findByNameContainingIgnoreCaseOrEmailContainingIgnoreCaseOrOrganisationNameContainingIgnoreCase(
+                    search, search, search, pageRequest);
+        }
+
+        // Both search and status are present
+        return repository.findByStatusAndNameContainingIgnoreCaseOrStatusAndEmailContainingIgnoreCaseOrStatusAndOrganisationNameContainingIgnoreCase(
+                status, search,
+                status, search,
+                status, search,
+                pageRequest);
     }
+
     
     public LoginResponseDTO login(LoginRequestDTO loginRequest) {
-        // 1) Find user by email
         Registration registration = repository.findByEmail(loginRequest.getEmail())
             .orElseThrow(() -> new RegistrationException("No user found with email: " + loginRequest.getEmail()));
 
-        // 2) Check password match (assuming plain text in DB for this example)
         if (!registration.getPassword().equals(loginRequest.getPassword())) {
             throw new RegistrationException("Incorrect password.");
         }
 
-        // 3) Check status
         if (!registration.getStatus().equals(Status.Active)) {
             throw new RegistrationException("Account is not ACTIVE. Current status: " + registration.getStatus());
         }
 
-        // 4) Success
         LoginResponseDTO response = new LoginResponseDTO();
         response.setSuccess(true);
         response.setMessage("Login successful.");
-        response.setData(registration); // or a sanitized user object if you prefer
+        response.setData(registration); // Full registration info (including role)
+
         return response;
     }
+
 }

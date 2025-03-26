@@ -41,13 +41,14 @@ public class RegistrationController {
     @GetMapping("/search")
     public ResponseEntity<Page<Registration>> searchRegistration(
             @RequestParam(value = "search", required = false) String search,
+            @RequestParam(value = "status", required = false) Registration.Status status,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size
     ) {
-        Page<Registration> result = service.searchRegistrations(search, page, size);
+        Page<Registration> result = service.searchRegistrations(search, status, page, size);
         return ResponseEntity.ok(result);
     }
-    
+
     @PostMapping("/login")
     public ResponseEntity<LoginResponseDTO> login(@Valid @RequestBody LoginRequestDTO requestDTO) {
         LoginResponseDTO response = service.login(requestDTO);

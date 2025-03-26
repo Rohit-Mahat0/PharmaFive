@@ -28,8 +28,19 @@ public class Registration {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private Status status = Status.Pending;
+    
+    @Column(nullable = false, length = 20)
+    private String role = "User"; // Default role
 
-    public enum Status {
+    public String getRole() {
+		return role;
+	}
+
+	public void setRole(String role) {
+		this.role = role;
+	}
+
+	public enum Status {
         Active, Inactive, Pending
     }
 
